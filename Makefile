@@ -6,3 +6,15 @@ build:
 
 push:
 	@docker push ${name}:${tag}
+
+up:
+	@docker-compose up -d
+
+down:
+	@docker-compose down
+
+ps:
+	@docker-compose ps
+
+ls:
+	@docker images ${name}
