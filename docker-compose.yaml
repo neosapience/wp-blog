@@ -4,7 +4,7 @@ volumes:
 
 services:
   wordpress:
-    image: wp:5.9.3-php8.1-apache
+    image: neosapience/wordpress:5.9.3-php8.1-apache
     ports:
       - 80:80
     environment:
