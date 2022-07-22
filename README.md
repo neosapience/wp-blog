@@ -3,4 +3,7 @@
 | Wordpress Docker image to use subdirectory as `/blog`
 
 * [Dockerfile](/docker/Dockerfile)
-* Current subdirectory is `/blog`
+* Default subdirectory is `/blog`
+
+### change subdirectory
+* add --build-arg SUBDIR=your/sub/directory
