@@ -1,5 +1,5 @@
 name := neosapience/wordpress
-tag := 5.9.3-php8.1-apache
+tag := 7.0.2-php8.5-apache
 
 build:
 	@docker build . \
