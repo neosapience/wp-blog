@@ -5,8 +5,10 @@ ARG SUBDIR=blog
 COPY docker/security.ini /usr/local/etc/php/conf.d/security.ini
 
 # handoff A1/A2: security response headers, server fingerprint removal and
-# xmlrpc blocking. mod_headers is required by security.conf; mod_rewrite keeps
-# pretty permalinks working once wordpress.conf enables AllowOverride.
+# xmlrpc blocking. security.conf needs mod_headers. mod_rewrite is what
+# WordPress's own .htaccess uses for pretty permalinks — the base image already
+# enables both, so this is a guard against a base image that stops doing so
+# rather than something we turn on ourselves.
 RUN a2enmod headers rewrite
 COPY docker/security.conf  /etc/apache2/conf-enabled/security.conf
 COPY docker/wordpress.conf /etc/apache2/conf-enabled/wordpress.conf
