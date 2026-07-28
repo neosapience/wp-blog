@@ -21,10 +21,18 @@ build-global:
 		--build-arg SUBDIR=learn \
 		--platform linux/amd64
 
+# 세 태그를 한꺼번에 민다. build/build-global/build-korea 를 모두 돌린 뒤에만
+# 성공하므로, 한쪽 리전만 올릴 때는 push-korea / push-global 을 쓴다.
 push:
 	@docker push ${name}:${tag}
 	@docker push ${name}:${tag}-global
 	@docker push ${name}:${tag}-korea
+
+push-korea:
+	@docker push ${name}:${tag}-korea
+
+push-global:
+	@docker push ${name}:${tag}-global
 
 up:
 	@docker-compose up -d
