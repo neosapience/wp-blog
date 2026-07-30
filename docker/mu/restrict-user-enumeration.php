@@ -32,7 +32,7 @@
  * documented in docker/security.conf in the wp-blog image.
  *
  * It cannot sit in wp-content/mu-plugins inside the image either: wp-content lives
- * under the EBS mount at /var/www/html/kr/learn, so anything COPY'd there during
+ * under the EBS mount at /var/www/html/${SUBDIR}, so anything COPY'd there during
  * build is masked at runtime by the existing volume. The code therefore ships at
  * /opt/wp-mu (outside the mount) and eks-recipe mounts one loader file into
  * mu-plugins that require's everything in that directory.

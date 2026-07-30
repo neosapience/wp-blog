@@ -42,7 +42,8 @@ function typecast_pretendard_url(): ?string {
     sort($found, SORT_NATURAL);
     $version = basename(dirname(end($found)));
 
-    // home_url() 은 서브디렉터리(/kr/learn)를 포함하므로 Alias 경로와 맞는다.
+    // home_url() 은 설치 서브디렉터리를 포함하므로 Alias 경로(/<SUBDIR>/assets/fonts)와
+    // 맞는다. SUBDIR 은 빌드마다 다르다(기본 blog, 한국 kr/learn, 영문 learn).
     return $url = home_url("/assets/fonts/{$version}/pretendard.css");
 }
 
