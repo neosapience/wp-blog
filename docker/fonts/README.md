@@ -21,7 +21,7 @@ CSS 의 폰트 경로만 `./woff2/` 로 바꿨고 내용은 원본 그대로다.
 
 ## 공개 경로에 버전이 들어간다
 
-```
+```text
 이미지    /opt/fonts/1.3.9/pretendard.css
 공개 URL  <SUBDIR>/assets/fonts/1.3.9/pretendard.css
 ```

@@ -71,16 +71,42 @@ add_filter('rest_endpoints', function ($endpoints) {
 
             // This filter runs before WP_REST_Server::get_routes() normalises
             // 'methods', so it is still whatever register_rest_route() was
-            // given: 'GET', 'POST, PUT, PATCH', or an array.
-            $methods = is_array($handler['methods'])
-                ? $handler['methods']
-                : explode(',', (string) $handler['methods']);
+            // given: 'GET', 'POST, PUT, PATCH', an array, or the normalised
+            // ['GET' => true] shape if something already touched it.
+            $raw = $handler['methods'];
+
+            if (is_array($raw)) {
+                $methods = array_keys($raw) === range(0, count($raw) - 1)
+                    ? $raw
+                    : array_keys($raw);
+            } else {
+                $methods = explode(',', (string) $raw);
+            }
+
+            // Take the read methods out of the handler instead of dropping the
+            // handler. register_rest_route() allows one handler to serve several
+            // methods ('GET, POST' is legal), so removing the handler because it
+            // answers GET would take its write methods with it. Core currently
+            // registers GET separately on these routes, but a plugin adding a
+            // mixed handler must not silently lose its writes.
+            $kept = [];
 
             foreach ($methods as $method) {
-                if (strtoupper(trim((string) $method)) === 'GET') {
-                    unset($endpoints[$route][$index]);
-                    break;
+                $method = strtoupper(trim((string) $method));
+
+                // WP_REST_Server treats HEAD as part of a readable handler.
+                if ($method === '' || $method === 'GET' || $method === 'HEAD') {
+                    continue;
                 }
+
+                $kept[] = $method;
+            }
+
+            if (!$kept) {
+                // Read-only handler — nothing left to keep.
+                unset($endpoints[$route][$index]);
+            } elseif (count($kept) !== count($methods)) {
+                $endpoints[$route][$index]['methods'] = implode(', ', $kept);
             }
         }
 
