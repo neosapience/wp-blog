@@ -8,12 +8,34 @@ tag := 7.0.2-php8.5-apache
 #
 # 지금까지 이 단계를 손으로 했다. 빠뜨리기 쉽고, 빠뜨리면 "푸시했는데 왜 그대로지"가
 # 된다. 그래서 push 타겟이 알아서 붙인다.
-sha := $(shell git rev-parse --short HEAD)
+sha := $(shell git rev-parse --short HEAD 2>/dev/null)
 
-# 커밋되지 않은 변경이 있으면 SHA 가 실제로 빌드된 내용과 다르다. 그런 이미지가
-# 배포되면 저장소를 봐도 무엇이 돌고 있는지 알 수 없다. 푸시 전에 막는다.
+# 이 Makefile 은 병렬로 돌 일이 없다. 그리고 -j 로 돌리면 guard-clean 과 build 가
+# 동시에 시작해서, 검사가 끝나기 전에 빌드가 나갈 수 있다. 순서를 지키는 편이 낫다.
+.NOTPARALLEL:
+
+.PHONY: guard-clean build build-korea build-global push push-korea push-global \
+        up up-korea down ps ls
+
+# 푸시 전 검사. 두 가지를 본다.
+#
+# 하나, SHA 를 읽었는가. git 이 실패하면 $(shell) 은 빈 문자열을 돌려주고, 그대로 두면
+# "${tag}-korea-" 처럼 꼬리가 빈 태그가 만들어져 올라간다.
+#
+# 둘, 작업 트리가 깨끗한가. 커밋되지 않은 변경이 있으면 SHA 가 실제로 빌드된 내용과
+# 다르고, 그런 이미지가 배포되면 저장소를 봐도 무엇이 돌고 있는지 알 수 없다.
+# git status 자체가 실패한 경우도 통과시키면 안 된다 — 출력이 비었다는 것과 명령이
+# 실패했다는 것은 다르다.
 guard-clean:
-	@test -z "$$(git status --porcelain)" || { \
+	@test -n "$(sha)" || { \
+		echo "커밋 SHA 를 읽지 못했다. git 저장소 안에서 실행해야 한다."; \
+		exit 1; \
+	}
+	@status="$$(git status --porcelain)" || { \
+		echo "git status 가 실패했다. 트리 상태를 확인할 수 없다."; \
+		exit 1; \
+	}; \
+	test -z "$$status" || { \
 		echo "커밋되지 않은 변경이 있다. SHA($(sha))가 이미지 내용과 어긋난다."; \
 		git status --short; \
 		exit 1; \
@@ -46,30 +68,26 @@ build-global:
 # 리전별 이미지는 SHA 태그와 고정 태그를 함께 올린다. 배포가 가리키는 것은 SHA
 # 태그이고, 고정 태그는 "가장 최근 것"을 가리키는 편의용이다.
 # 기본 이미지(${tag})는 배포에 쓰이지 않아 SHA 태그를 붙이지 않는다.
-push: guard-clean build build-global build-korea
-	@docker push ${name}:${tag}
-	@$(MAKE) --no-print-directory push-tags-global
-	@$(MAKE) --no-print-directory push-tags-korea
-
+# 태그를 붙여 올리는 일은 별도 타겟으로 두지 않는다. 타겟이면 `make push-tags-korea`
+# 로 직접 부를 수 있고, 그러면 guard-clean 과 build 를 건너뛰어 오래된 로컬 이미지에
+# 현재 SHA 를 붙여 올리게 된다. 이 Makefile 이 막으려는 바로 그 상황이다.
+# 리전이 둘뿐이라 네 줄을 두 번 적는 편이 안전하다.
+#
+# 마지막 줄에 eks-recipe 에 적을 값을 찍는다. 그 값을 옮겨 적는 것이 배포의 마지막 한 걸음이다.
 push-korea: guard-clean build-korea
-	@$(MAKE) --no-print-directory push-tags-korea
-
-push-global: guard-clean build-global
-	@$(MAKE) --no-print-directory push-tags-global
-
-# 태그를 붙여 올리고, eks-recipe 에 적을 값을 마지막에 찍어 준다.
-# 그 값을 옮겨 적는 것이 배포의 마지막 한 걸음이다.
-push-tags-korea:
 	@docker tag ${name}:${tag}-korea ${name}:${tag}-korea-${sha}
 	@docker push ${name}:${tag}-korea-${sha}
 	@docker push ${name}:${tag}-korea
 	@echo "korea  newTag: ${tag}-korea-${sha}"
 
-push-tags-global:
+push-global: guard-clean build-global
 	@docker tag ${name}:${tag}-global ${name}:${tag}-global-${sha}
 	@docker push ${name}:${tag}-global-${sha}
 	@docker push ${name}:${tag}-global
 	@echo "global newTag: ${tag}-global-${sha}"
+
+push: guard-clean build push-global push-korea
+	@docker push ${name}:${tag}
 
 up:
 	@docker-compose up -d
