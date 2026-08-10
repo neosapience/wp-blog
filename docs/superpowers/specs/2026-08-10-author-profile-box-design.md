@@ -30,19 +30,24 @@ KR 블로그의 실제 구성은 저장소만 봐서는 알 수 없어 라이브
 
 ### Author Box 위젯을 쓰지 않는 이유
 
-Elementor Author Box 위젯은 `이름 → 소개문`을 한 덩어리로 출력한다. 시안은 그 **사이**에 소속이 들어가고, 위젯 내부 순서는 편집기로도 바꿀 수 없다. 그래서 기본 위젯으로 조립한다. 숨겨진 기존 위젯은 **삭제**한다 — 숨은 채 남으면 나중에 어느 쪽이 진짜인지 알 수 없다.
+Elementor Author Box 위젯은 `이름 → 소개문`을 한 덩어리로 출력한다. 시안은 그 **사이**에 소속이 들어가고, 위젯 내부 순서는 편집기로도 바꿀 수 없다. 그래서 기본 위젯으로 조립한다.
+
+기존의 숨겨진 Author Box 위젯(`7289afd1`)은 **그대로 두었다.** 왼쪽 레일 컬럼에 다른 미사용 위젯들과 함께 전부 숨김 처리되어 있고, 이번 작업과 위치가 겹치지 않는다. 정리는 별도 건으로 다루는 편이 낫다.
 
 ## 구성
 
+```text
+내부 섹션 (배경 #F4F4F4, 라운드 20px, 열 간격 no)
+├─ 컬럼 (내용 폭)
+│  └─ 이미지 위젯     ← 동적 태그 Author Profile Picture, 원형
+└─ 컬럼 (tc-author-text, 데스크톱 535px)
+   ├─ 제목 위젯       ← 동적 태그 Author Name
+   ├─ 제목 위젯       ← 동적 태그 Author Meta → typecast_affiliation
+   ├─ 아이콘 목록     ← 항목 링크에 동적 태그 Author Meta → linkedin
+   └─ 텍스트 위젯     ← 동적 태그 Author Info → Bio
 ```
-컨테이너 (배경 #F4F4F4, 라운드 20px)
-├─ 이미지 위젯       ← 동적 태그 Author Profile Picture, 원형
-└─ 컨테이너 (세로, gap 20px)
-   ├─ 컨테이너 (세로, gap 4px)
-   │  ├─ 제목 위젯   ← 동적 태그 Author Info → Display Name
-   │  └─ 텍스트 위젯 ← 동적 태그 Author Meta → typecast_affiliation
-   └─ 텍스트 위젯    ← 동적 태그 Author Info → Bio
-```
+
+소속·LinkedIn·소개문은 값이 없으면 그 줄이 통째로 사라진다. 소속과 소개문은 Elementor 가 빈 동적 값을 가진 위젯을 아예 렌더하지 않아서고, LinkedIn 은 아이콘 목록이 링크 없이도 항목을 그리기 때문에 섹션 Custom CSS 의 `:not(:has(> a))` 로 숨긴다.
 
 ## 값
 
@@ -126,7 +131,13 @@ Elementor 는 저장 시 `wp-content/uploads/elementor/css/post-<id>.css` 를 �
 증상은 "마크업은 있는데 스타일만 없다"로 나타난다. 템플릿을 고친 뒤에는 무효화가 필요하다:
 
 ```
-aws cloudfront create-invalidation --distribution-id <ID> \
+# 배포 ID 를 먼저 찾는다
+aws cloudfront list-distributions \
+  --query "DistributionList.Items[?Aliases.Items!=null]|[?contains(to_string(Aliases.Items),'typecast.ai')].[Id,to_string(Aliases.Items)]" \
+  --output table
+
+CLOUDFRONT_DISTRIBUTION_ID=E1234567890ABC   # 위 표에서 찾은 실제 ID 로 바꾼다
+aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
   --paths "/kr/learn/wp-content/uploads/elementor/css/*"
 ```
 

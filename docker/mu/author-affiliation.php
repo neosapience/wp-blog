@@ -29,6 +29,17 @@ if (!defined('ABSPATH')) {
 const TYPECAST_AFFILIATION_META_KEY = 'typecast_affiliation';
 
 /**
+ * 소속 최대 길이(자).
+ *
+ * 시안에서 소속은 이름 아래 한 줄이고 데스크톱에서는 LinkedIn 과 나란히 놓인다.
+ * 길면 줄이 접히면서 박스가 늘어난다. 화면이 감당할 만한 선에서 자른다.
+ *
+ * 입력칸의 maxlength 와 저장 시 검사가 이 상수를 함께 쓴다. 두 곳에 숫자를 적어
+ * 두면 한쪽만 고쳤을 때 "브라우저는 막는데 서버는 통과"하거나 그 반대가 된다.
+ */
+const TYPECAST_AFFILIATION_MAX_LENGTH = 100;
+
+/**
  * 프로필 화면에 입력칸을 그린다.
  *
  * 라벨을 한글·영문 병기로 둔다. 이 이미지는 한국(kr/learn)과 영문(learn) 양쪽에
@@ -59,7 +70,7 @@ function typecast_affiliation_render_field(WP_User $user): void {
                     name="typecast_affiliation"
                     value="<?php echo esc_attr($value); ?>"
                     class="regular-text"
-                    maxlength="100"
+                    maxlength="<?php echo esc_attr((string) TYPECAST_AFFILIATION_MAX_LENGTH); ?>"
                 />
                 <p class="description">
                     아티클 하단 작성자 박스에서 이름 아래에 표시됩니다. 예: 네오사피엔스 콘텐츠팀
@@ -78,7 +89,9 @@ add_action('edit_user_profile', 'typecast_affiliation_render_field');
  *
  * 이 훅은 프로필 화면 말고도 사용자를 갱신하는 다른 경로에서 실행될 수 있다. 그런
  * 호출에는 우리 필드도 nonce 도 없으므로, 값이 안 왔다고 메타를 지우면 안 된다 —
- * 남의 코드가 사용자를 저장할 때마다 소속이 지워진다. nonce 가 없으면 그대로 둔다.
+ * 남의 코드가 사용자를 저장할 때마다 소속이 지워진다. nonce 가 없으면, 그리고 nonce 를
+ * 통과했더라도 우리 입력칸이 요청에 없으면 그대로 둔다. 지우는 것은 입력칸이 실제로
+ * 비어서 왔을 때뿐이다.
  */
 function typecast_affiliation_save(int $user_id): void {
     if (!isset($_POST['typecast_affiliation_nonce'])) {
@@ -95,9 +108,21 @@ function typecast_affiliation_save(int $user_id): void {
         return;
     }
 
-    $value = isset($_POST['typecast_affiliation'])
-        ? trim(sanitize_text_field(wp_unslash($_POST['typecast_affiliation'])))
-        : '';
+    // 필드가 아예 안 온 요청은 손대지 않는다. nonce 를 통과했더라도 우리 입력칸이
+    // 없는 폼이라면 "비웠다"가 아니라 "이 폼은 소속을 다루지 않는다"는 뜻이다.
+    // 여기서 지우면 그런 저장 경로가 생길 때마다 값이 조용히 사라진다.
+    if (!isset($_POST['typecast_affiliation']) || !is_string($_POST['typecast_affiliation'])) {
+        return;
+    }
+
+    $value = trim(sanitize_text_field(wp_unslash($_POST['typecast_affiliation'])));
+
+    // maxlength 는 브라우저에서만 막는다. 조작한 요청이나 다른 저장 경로로 들어온
+    // 긴 값은 여기서 자른다. mb_substr 은 mbstring 이 없어도 워드프레스가
+    // wp-includes/compat.php 에서 폴리필하므로 한글이 중간에서 깨지지 않는다.
+    if (mb_strlen($value) > TYPECAST_AFFILIATION_MAX_LENGTH) {
+        $value = trim(mb_substr($value, 0, TYPECAST_AFFILIATION_MAX_LENGTH));
+    }
 
     if ($value === '') {
         // 빈 문자열을 남기지 않고 지운다. 남겨 두면 Elementor 가 "값이 있다"고 보고
