@@ -1,6 +1,11 @@
 # 아티클 하단 작성자 프로필 박스 (KR)
 
-- 시안: Figma `Marketing-Design` — 데스크톱 [17904:56284](https://www.figma.com/design/5gnSQqwIhC6gVMnltL7mtK/Marketing-Design?node-id=17904-56284), 모바일 [17904:56301](https://www.figma.com/design/5gnSQqwIhC6gVMnltL7mtK/Marketing-Design?node-id=17904-56301)
+- 시안: Figma `Marketing-Design` › `03. 개별 아티클 - 공통 레이아웃`
+  — 데스크톱 [17917:62327](https://www.figma.com/design/5gnSQqwIhC6gVMnltL7mtK/Marketing-Design?node-id=17917-62327),
+  모바일 [17917:61143](https://www.figma.com/design/5gnSQqwIhC6gVMnltL7mtK/Marketing-Design?node-id=17917-61143)
+- 옛 시안(17904:56284 / 17904:56301)으로 먼저 만들었다가 17917 로 옮겼다. 17917 이 최신이며
+  앞선 breadcrumb·좌측 레일 작업도 이 프레임 기준이었다. 차이는 소속 굵기(SemiBold→Medium),
+  코멘트 크기(데스크톱 20→16px), 그리고 LinkedIn 줄의 유무다.
 - 대상: 한국 블로그(https://typecast.ai/kr/learn) 싱글 포스트, 본문과 "관련 아티클" 사이
 
 ## 배경
@@ -49,10 +54,12 @@ Elementor Author Box 위젯은 `이름 → 소개문`을 한 덩어리로 출력
 | 아바타 | 110px 원형 | 110px 원형 | 60px 원형 |
 | 아바타↔텍스트 | 41px | 41px | 10px |
 | 이름 | Pretendard SemiBold 20px `#000` | 동일 | Pretendard SemiBold 16px `#000` |
-| 소속 | Pretendard SemiBold 14px `#838383` | 동일 | 동일 |
-| 코멘트 | Pretendard Regular 20px `#000`, 좌측 정렬 | 동일 | Pretendard Regular 14px `#000`, 가운데 정렬 |
+| 소속 | Pretendard Medium 14px `#838383` | 동일 | 동일 |
+| LinkedIn | 소속 **오른쪽**, 간격 20px | 동일 | 소속 **아래**, 간격 4px |
+| LinkedIn 아이콘 | 16px `#0A66C2`, 글자와 4px | 동일 | 동일 |
+| 코멘트 | Pretendard Regular 16px `#000`, 좌측 정렬 | 동일 | Pretendard Regular 14px `#000`, 가운데 정렬 |
 | 이름↔소속 | 4px | 4px | 4px |
-| 소속↔코멘트 | 20px | 20px | 20px |
+| 소속줄↔코멘트 | 20px | 20px | 20px |
 
 태블릿(768~1024px) 값은 시안에 없다. 데스크톱 배치를 유지하되 패딩만 줄인 것이며, 확인 후 조정할 수 있다.
 
@@ -80,7 +87,13 @@ Elementor 쪽 설정은 DB 에만 남으므로 여기 적어 둔다. 템플릿�
 | `ta9f104` | 컬럼 | `tc-author-text` | — |
 | `ta9f105` | heading | `tc-author-name` | `author-name` |
 | `ta9f106` | heading | `tc-author-org` | `author-meta` (key `typecast_affiliation`) |
+| `ta9f108` | icon-list | `tc-author-li` | 항목 링크에 `author-meta` (key `linkedin`) |
 | `ta9f107` | text-editor | `tc-author-bio` | `author-info` (key `description`) |
+
+`linkedin` 은 우리가 만든 필드가 아니다. **Yoast SEO 가 프로필 "연락 정보"에 넣는 필드**이고
+(페이스북·인스타그램·X 등과 함께) 값이 이미 채워져 있다. 소속과 달리 배포 없이 바로 쓸 수 있었다.
+아이콘은 Font Awesome 브랜드 아이콘 `fab fa-linkedin` 을 쓴다 — 시안의 LinkedIn 벌지와 같은 모양이라
+이미지 에셋을 따로 넣지 않는다.
 
 작업하며 알게 된 것들:
 
@@ -113,6 +126,17 @@ aws cloudfront create-invalidation --distribution-id <ID> \
 
 - 각 필자 프로필의 **"소개"** — 현재 전원 비어 있음
 - 각 필자 프로필의 **"소속"** — 이번에 추가되는 칸. mu-plugin 이 배포되어야 필드가 생긴다
+- **LinkedIn** 은 Yoast 필드라 이미 있다. 비어 있는 필자는 줄이 통째로 숨는다(섹션 Custom CSS 의
+  `:not(:has(> a))`). 아이콘과 글자만 남고 클릭은 안 되는 상태를 막기 위한 것이다
+
+## 범위 밖으로 남은 17917 변경사항
+
+작성자 박스만 17917 로 맞췄다. 같은 프레임의 나머지 변경은 손대지 않았다.
+
+- 데스크톱: 아티클 컬럼 915 → 925, 본문과 박스 사이의 **"공유하기" 줄**, 관련 아티클 카드
+  337 → 296px(커버 210 → 180), 하단 CTA 가 1440 풀블리드 → 925 폭
+- 모바일: 최상단이 "타입캐스트 블로그" 제목에서 **로고 + 햄버거 헤더 바(47px)** 로, 카테고리 칩이
+  3줄 줄바꿈에서 1줄 가로 스크롤로, 커버 160 → 183.6px, **"공유하기" 줄** 추가
 
 ## 확인 방법
 
