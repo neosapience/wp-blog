@@ -37,7 +37,22 @@ add_filter('wpseo_breadcrumb_links', function ($links) {
                 return $links;
             }
 
-            return array_slice($links, 0, $index);
+            $kept = array_slice($links, 0, $index);
+
+            // 시안의 트레일은 `블로그 > 카테고리` 두 단계다. 카테고리 크럼이 없는
+            // 사이트에서는 자를 것이 없다 — 영문 블로그(/learn)가 그렇다. Yoast 의
+            // Posts breadcrumb taxonomy 가 KR 은 Category, 영문은 None 이라
+            // 트레일이 `Home > 글 제목` 이고, 여기서 글 항목을 자르면 홈 하나만
+            // 남는다. 게다가 남은 홈이 마지막 항목이 되면서 Yoast 가 앵커를 빼
+            // 클릭조차 안 된다(로컬에서 재현: 카테고리 있으면 `Home > Business`,
+            // 없으면 링크 없는 `Home`).
+            foreach ($kept as $item) {
+                if (!empty($item['term_id'])) {
+                    return $kept;
+                }
+            }
+
+            return $links;
         }
     }
 
