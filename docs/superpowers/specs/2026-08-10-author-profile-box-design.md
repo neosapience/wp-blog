@@ -67,12 +67,52 @@ WP `사용자 → 프로필` 화면에 "소속" 입력칸을 추가하고 사용
 - 저장 시 `current_user_can('edit_user', $user_id)` 로 권한을 확인하고 nonce 를 검증한다.
 - 값이 비면 메타를 저장하지 않고 삭제한다 — 빈 문자열이 남으면 편집기에서 빈 줄이 생긴다.
 
+## 실제 적용 결과 (2026-08-10)
+
+Elementor 쪽 설정은 DB 에만 남으므로 여기 적어 둔다. 템플릿은 **Single Post (post ID 6046)** 이고,
+박스는 본문 위젯(`e789a45`) 바로 뒤, 오른쪽 컬럼(`1c161a69`)의 6번째 자식이다.
+
+| 요소 ID | 종류 | 클래스 | 동적 태그 |
+|---|---|---|---|
+| `ta9f101` | 내부 섹션 | `tc-author` | — |
+| `ta9f102` | 컬럼 | — | — |
+| `ta9f103` | image | `tc-author-avatar` | `author-profile-picture` |
+| `ta9f104` | 컬럼 | `tc-author-text` | — |
+| `ta9f105` | heading | `tc-author-name` | `author-name` |
+| `ta9f106` | heading | `tc-author-org` | `author-meta` (key `typecast_affiliation`) |
+| `ta9f107` | text-editor | `tc-author-bio` | `author-info` (key `description`) |
+
+작업하며 알게 된 것들:
+
+- **섹션·컬럼의 CSS 클래스 컨트롤은 `css_classes`, 위젯은 `_css_classes` 다.** 이름이 다르다.
+- **편집기 미리보기는 위젯 CSS 를 적용하지 않는다.** 기존의 정상 위젯 `tc-meta-label` 도 설정은
+  12px/`#6B6B6B` 인데 편집기에서는 17px/`#222` 로 계산된다. 타이포그래피는 편집기에서 검증할 수
+  없고 프론트엔드에서 봐야 한다.
+- **값이 빈 동적 위젯은 렌더되지 않는다.** 소속·소개문이 비어도 빈 줄이나 여백이 남지 않는다.
+- **아바타 원본은 96px 로 고정된다.** `author-profile-picture` 태그가 이미지 크기 설정을 무시한다
+  (thumbnail·medium·large·full 모두 96×96 반환). 시안은 110px 이라 15% 확대된다. 사진이라 크게
+  띄지는 않으나 고해상도 화면에서는 다소 부드럽다.
+
+### CloudFront 캐시 — 편집 후 반드시 확인할 것
+
+Elementor 는 저장 시 `wp-content/uploads/elementor/css/post-<id>.css` 를 다시 만들고 HTML 의
+`?ver=` 를 올린다. 그런데 이 경로는 **CloudFront 가 쿼리스트링을 캐시 키에서 무시**하도록 되어
+있어, `?ver=` 가 바뀌어도 옛 파일이 그대로 내려온다. 서로 다른 쿼리(`?cb=`·`?x=`·`?zz=`)로 요청해도
+같은 캐시 객체가 나오는 것으로 확인했다(`age` 가 이어서 증가).
+
+증상은 "마크업은 있는데 스타일만 없다"로 나타난다. 템플릿을 고친 뒤에는 무효화가 필요하다:
+
+```
+aws cloudfront create-invalidation --distribution-id <ID> \
+  --paths "/kr/learn/wp-content/uploads/elementor/css/*"
+```
+
 ## 콘텐츠 준비 (작업 후 필요)
 
-박스는 데이터를 그릴 뿐이다. 아래가 비어 있으면 그 자리가 빈칸으로 나온다.
+박스는 데이터를 그릴 뿐이다. 아래가 비어 있으면 그 줄이 통째로 사라진다.
 
 - 각 필자 프로필의 **"소개"** — 현재 전원 비어 있음
-- 각 필자 프로필의 **"소속"** — 이번에 추가되는 칸
+- 각 필자 프로필의 **"소속"** — 이번에 추가되는 칸. mu-plugin 이 배포되어야 필드가 생긴다
 
 ## 확인 방법
 
