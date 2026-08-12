@@ -13,6 +13,17 @@ RUN a2enmod headers rewrite
 COPY docker/security.conf  /etc/apache2/conf-enabled/security.conf
 COPY docker/wordpress.conf /etc/apache2/conf-enabled/wordpress.conf
 
+# REST API 응답을 gzip 으로 내보낸다. 이유는 docker/compression.conf 참조.
+COPY docker/compression.conf /etc/apache2/conf-enabled/compression.conf
+
+# 업로드 이미지에 브라우저 캐시를 건다. 이유는 docker/caching.conf 참조.
+# mod_expires 는 베이스 이미지가 이미 켜 두지만, 위 headers/rewrite 와 같은
+# 이유로 명시해 둔다. 대상 경로가 SUBDIR 마다 다르므로 fonts.conf 와 같은
+# 방식으로 치환한다.
+RUN a2enmod expires
+COPY docker/caching.conf /etc/apache2/conf-enabled/caching.conf
+RUN sed -i "s|__SUBDIR__|${SUBDIR}|g" /etc/apache2/conf-enabled/caching.conf
+
 # Pretendard Variable (동적 서브셋). 근거와 갱신 방법은 docker/fonts/README.md 참조.
 #
 # /opt/fonts 에 두는 이유: wp-content 아래로 COPY 하면 프로덕션의 EBS 마운트
@@ -34,6 +45,11 @@ RUN sed -i "s|__SUBDIR__|${SUBDIR}|g" /etc/apache2/conf-enabled/fonts.conf
 # 로더 파일 하나만 올린다. 새 플러그인을 추가할 때 이 디렉터리에 파일만 넣으면
 # 되고 배포 YAML 은 건드리지 않는다.
 COPY docker/mu/ /opt/wp-mu/
+
+# 위 conf 들과 __SUBDIR__ 치환이 모두 끝난 뒤 문법을 확인한다. 설정 오류는
+# 빌드가 아니라 파드가 뜰 때 드러나므로, 여기서 막지 않으면 배포에서 발견된다.
+# ServerName 미설정 경고는 베이스 이미지의 기본 상태라 무시한다.
+RUN apache2ctl configtest
 
 RUN echo 'ok' >> index.html
 WORKDIR /var/www/html/${SUBDIR}
