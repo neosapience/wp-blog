@@ -13,6 +13,15 @@ RUN a2enmod headers rewrite
 COPY docker/security.conf  /etc/apache2/conf-enabled/security.conf
 COPY docker/wordpress.conf /etc/apache2/conf-enabled/wordpress.conf
 
+# REST API 응답을 gzip 으로 내보낸다. 이유는 docker/compression.conf 참조.
+COPY docker/compression.conf /etc/apache2/conf-enabled/compression.conf
+
+# 업로드 이미지에 브라우저 캐시를 건다. 이유는 docker/caching.conf 참조.
+# mod_expires 는 베이스 이미지가 이미 켜 두지만, 위 headers/rewrite 와 같은
+# 이유로 명시해 둔다.
+RUN a2enmod expires
+COPY docker/caching.conf /etc/apache2/conf-enabled/caching.conf
+
 # Pretendard Variable (동적 서브셋). 근거와 갱신 방법은 docker/fonts/README.md 참조.
 #
 # /opt/fonts 에 두는 이유: wp-content 아래로 COPY 하면 프로덕션의 EBS 마운트
