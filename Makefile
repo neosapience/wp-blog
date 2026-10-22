@@ -1,5 +1,5 @@
 name := neosapience/wordpress
-tag := 7.0.2-php8.5-apache
+tag := 7.1.3-php8.5-apache
 
 # 배포되는 태그에는 커밋 SHA 를 붙인다. 프로덕션(EKS)은 eks-recipe 의
 # k8s/apps/wp-blog/overlays/korea/kustomization.yaml 의 images.newTag 로 이미지를
