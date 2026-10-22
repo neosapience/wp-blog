@@ -1,4 +1,4 @@
-FROM wordpress:7.0.2-php8.5-apache
+FROM wordpress:7.1.3-php8.5-apache
 ARG SUBDIR=blog
 
 # handoff A2: hide the PHP version from response headers (expose_php=Off).
